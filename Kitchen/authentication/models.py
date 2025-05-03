@@ -54,3 +54,7 @@ class Address(models.Model):
     def __str__(self):
         return f"{self.address_type.title()} - {self.street_address}, {self.city}"
     
+class PasswordReset(models.Model):
+    email = models.EmailField()
+    token = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
