@@ -47,3 +47,22 @@ class AllProductsCategoryView(APIView):
         
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class ProductDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, category_slug, product_slug, *args, **kwargs):
+        """
+        This endpoint retrieves a specific product by its slug.
+        """
+        try:
+            product = Product.objects.get(slug=product_slug, category__slug=category_slug)
+            serializer = ProductSerializer(product, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        

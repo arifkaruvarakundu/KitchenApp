@@ -2,7 +2,7 @@ import os
 from django.shortcuts import render
 from rest_framework import generics
 from rest_framework.views import APIView
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, ResetPasswordRequestSerializer, ResetPasswordSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, ResetPasswordRequestSerializer, ResetPasswordSerializer, UserDetailSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -16,6 +16,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_str, force_bytes
 from django.core.mail import EmailMessage
 from .forms import AddressForm
+from django.contrib.auth import get_user_model
 
 # Create your views here.
 
@@ -26,6 +27,7 @@ def get_tokens_for_user(user):
         'access': str(refresh.access_token),
     }
 
+User = get_user_model()
 
 
 class UserRegistrationView(APIView):
@@ -170,3 +172,15 @@ class CurrentUserInfo(APIView):
             'last_name': user.last_name,
             'email': user.email
         })
+
+class UserDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieve authenticated user's profile details.
+        """
+        user = request.user  # Already guaranteed to be authenticated by IsAuthenticated
+
+        serializer = UserDetailSerializer(user, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)

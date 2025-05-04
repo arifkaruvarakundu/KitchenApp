@@ -1,7 +1,9 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, Address
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -47,3 +49,28 @@ class ResetPasswordSerializer(serializers.Serializer):
         error_messages={'invalid': ('Password must be at least 8 characters long with at least one capital letter and symbol')})
     confirm_password = serializers.CharField(write_only=True, required=True)
 
+
+User = get_user_model()
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['street_address', 'city', 'zipcode', 'country', 'phone_number', 'address_type']
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    profile_img = serializers.SerializerMethodField()
+    addresses = AddressSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "first_name", "last_name", "email",
+            "addresses", "profile_img"
+        ]
+
+    def get_profile_img(self, obj):
+        request = self.context.get("request")
+        if obj.profile_img and hasattr(obj.profile_img, 'url'):
+            return request.build_absolute_uri(obj.profile_img.url)
+        return None

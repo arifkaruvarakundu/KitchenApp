@@ -14,10 +14,11 @@ class ProductFeatureSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     features = ProductFeatureSerializer(many=True)
+    category = ProductCategorySerializer()
 
     class Meta:
         model = Product
-        fields = ['id', 'product_name', 'description', 'features']
+        fields = ['id', 'product_name', 'description', 'features', 'category']
 
     def create(self, validated_data):
         features_data = validated_data.pop('features')
