@@ -20,6 +20,8 @@ class Product(models.Model):
     product_name = models.CharField(max_length=200, db_index=True, unique=True)
     brand = models.CharField(max_length=100, null=True, blank=True, help_text="Enter brand name")
     slug = models.SlugField(max_length=200, unique=True, null=True, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=3, db_index=True, null=True, blank=True)
+    stock = models.IntegerField(null=True, blank=True)
     description = models.TextField(max_length=500, blank=True)
     use_and_care = models.TextField(max_length=500, blank=True)
     is_available = models.BooleanField(default=True)
@@ -57,7 +59,7 @@ class ProductVariant(models.Model):
     product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE)
     color = models.CharField(max_length=100, null=True, blank=True)
     size = models.CharField(max_length=100, null=True, blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=3, db_index=True)
+    price = models.DecimalField(max_digits=10, decimal_places=3, db_index=True, null=True, blank=True)
     stock = models.IntegerField(null=True, blank=True)
     is_available = models.BooleanField(default=True)
 

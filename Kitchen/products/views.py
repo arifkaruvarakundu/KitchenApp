@@ -5,7 +5,10 @@ from rest_framework import status
 from .serializers import ProductSerializer, ProductCategorySerializer, ProductFeatureSerializer, ProductVariantSerializer
 from rest_framework.permissions import AllowAny
 from .models import Product, ProductCategory, ProductFeature, ProductVariant
-
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+from django.conf import settings
+from django.http import JsonResponse
+import logging
 # Create your views here.
 
 # class ProductCreateView(APIView):
@@ -66,3 +69,39 @@ class ProductDetailView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+logger = logging.getLogger(__name__)
+
+class SearchProductsView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        query = request.GET.get('query', '').strip()
+
+        if len(query) < 3:
+            return Response({'products': [], 'categories': []}, status=status.HTTP_200_OK)
+
+        try:
+            # Define limits (configurable)
+            product_limit = getattr(settings, 'SEARCH_PRODUCT_LIMIT', 10)
+            category_limit = getattr(settings, 'SEARCH_CATEGORY_LIMIT', 5)
+
+            # Full-text search (PostgreSQL)
+            search_query = SearchQuery(query)
+
+            products = Product.objects.annotate(
+                rank=SearchRank(SearchVector('product_name', weight='A'), search_query)
+            ).filter(rank__gte=0.1).order_by('-rank')[:product_limit]
+
+            categories = ProductCategory.objects.filter(category_name__icontains=query)[:category_limit]
+
+            return Response({
+                'products': ProductSerializer(products, many=True).data,
+                'categories': ProductCategorySerializer(categories, many=True).data
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.exception("Error in product search")  # Log full traceback
+            return Response(
+                {"detail": "An error occurred while retrieving search results."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

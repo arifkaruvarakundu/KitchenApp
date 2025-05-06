@@ -4,7 +4,7 @@ from .models import Product, ProductFeature, ProductVariant, ProductCategory
 class ProductCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductCategory
-        fields = ['id', 'category_name', 'category_image']
+        fields = ['id', 'category_name', 'category_name_ar', 'category_image']
 
 class ProductFeatureSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,7 +18,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'product_name', 'description', 'features', 'category']
+        fields = ['id', 'product_name', 'product_name_ar', 'description', 'description_ar', 'features', 'category', "use_and_care", 'use_and_care_ar']
 
     def create(self, validated_data):
         features_data = validated_data.pop('features')
@@ -30,4 +30,4 @@ class ProductSerializer(serializers.ModelSerializer):
 class ProductVariantSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductVariant
-        fields = ['id', 'product', 'color', 'size', 'price', 'stock', 'is_available']
+        fields = ['id', 'product', 'color','color_ar', 'size', 'price', 'stock', 'is_available']
