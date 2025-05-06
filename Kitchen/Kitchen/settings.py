@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'authentication',
-    'products',
+    'products.apps.ProductsConfig',
+    'cart',
 
 ]
 

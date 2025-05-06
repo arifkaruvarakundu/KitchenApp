@@ -4,7 +4,6 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -34,6 +33,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password2', None)
         return User.objects.create_user(**validated_data)
+    
+# class UserProfileSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = '__all__'
     
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()

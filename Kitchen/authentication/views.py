@@ -17,6 +17,7 @@ from django.utils.encoding import force_str, force_bytes
 from django.core.mail import EmailMessage
 from .forms import AddressForm
 from django.contrib.auth import get_user_model
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 # Create your views here.
 
@@ -184,3 +185,33 @@ class UserDetailView(APIView):
 
         serializer = UserDetailSerializer(user, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class UpdateUserProfileView(APIView):
+    """
+    View to update the authenticated user's profile.
+    Supports partial updates with JSON, Form, or Multipart data.
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user  # Authenticated user
+
+        serializer = UserDetailSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                return Response({
+                    'message': 'Profile updated successfully.',
+                    'data': serializer.data
+                }, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({
+                    'error': f'An error occurred while saving: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({
+            'error': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
