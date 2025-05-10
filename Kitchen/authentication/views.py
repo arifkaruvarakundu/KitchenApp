@@ -1,5 +1,4 @@
 import os
-from django.shortcuts import render
 from rest_framework import generics
 from rest_framework.views import APIView
 from .serializers import UserRegistrationSerializer, UserLoginSerializer, ResetPasswordRequestSerializer, ResetPasswordSerializer, UserDetailSerializer
@@ -7,11 +6,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .models import User, PasswordReset
+from .models import User
 from django.contrib.auth import authenticate
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.core.mail import send_mail
-from django.conf import settings
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_str, force_bytes
 from django.core.mail import EmailMessage
@@ -27,9 +24,6 @@ def get_tokens_for_user(user):
         'refresh': str(refresh),
         'access': str(refresh.access_token),
     }
-
-User = get_user_model()
-
 
 class UserRegistrationView(APIView):
     permission_classes = [AllowAny]

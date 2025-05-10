@@ -1,13 +1,11 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import ProductSerializer, ProductCategorySerializer, ProductFeatureSerializer, ProductVariantSerializer
+from .serializers import ProductSerializer, ProductCategorySerializer
 from rest_framework.permissions import AllowAny
-from .models import Product, ProductCategory, ProductFeature, ProductVariant
+from .models import Product, ProductCategory
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.conf import settings
-from django.http import JsonResponse
 import logging
 # Create your views here.
 
@@ -54,20 +52,31 @@ class AllProductsCategoryView(APIView):
 class ProductDetailView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, category_slug, product_slug, *args, **kwargs):
-        """
-        This endpoint retrieves a specific product by its slug.
-        """
+    def get(self, request, pk, *args, **kwargs):
         try:
-            product = Product.objects.get(slug=product_slug, category__slug=category_slug)
-            serializer = ProductSerializer(product, context={'request': request})
+            product = Product.objects.prefetch_related("variants__variant_images").get(pk=pk)  
+            serializer = ProductSerializer(product)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        
         except Product.DoesNotExist:
             return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
         
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# class ProductDetailView(APIView):
+#     permission_classes = [AllowAny]
+
+#     def get(self, request, category_slug, product_slug, *args, **kwargs):
+#         """
+#         This endpoint retrieves a specific product by its slug.
+#         """
+#         try:
+#             product = Product.objects.get(slug=product_slug, category__slug=category_slug)
+#             serializer = ProductSerializer(product, context={'request': request})
+#             return Response(serializer.data, status=status.HTTP_200_OK)
+        
+#         except Product.DoesNotExist:
+#             return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 logger = logging.getLogger(__name__)
 

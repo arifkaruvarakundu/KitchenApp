@@ -8,4 +8,7 @@ admin.site.register(Product)
 admin.site.register(ProductCategory)
 admin.site.register(ProductFeature)
 admin.site.register(ProductVariant)
-admin.site.register(ProductVariantImage)
+
+@admin.register(ProductVariantImage)
+class ProductVariantImageAdmin(admin.ModelAdmin):
+    list_display = ['id', 'variant', 'product', 'image']

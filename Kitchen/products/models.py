@@ -1,6 +1,6 @@
 from django.db import models
-from django.urls import reverse
 from django.utils.text import slugify
+from cloudinary.models import CloudinaryField
 
 # Create your models here.
 class ProductCategory(models.Model):
@@ -74,9 +74,14 @@ class ProductVariant(models.Model):
 
 class ProductVariantImage(models.Model):
     variant = models.ForeignKey(ProductVariant, related_name="variant_images", on_delete=models.CASCADE, null=True, blank=True)
-    image_url = models.URLField(default="")   # Store the image in Cloudinary
-    public_id = models.CharField(max_length=255, default="")  # Store the public_id for Cloudinary images
+    image = CloudinaryField('image', blank=True, null=True)
+    public_id = models.CharField(max_length=255, default="", null=True, blank=True)  # Store the public_id for Cloudinary images
     product = models.ForeignKey(Product, related_name="product_images", on_delete=models.CASCADE, null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.image and hasattr(self.image, 'public_id'):
+            self.public_id = self.image.public_id
+        super().save(*args, **kwargs)
 
     def __str__(self):
         if self.variant:

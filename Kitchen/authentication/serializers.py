@@ -64,7 +64,7 @@ class AddressSerializer(serializers.ModelSerializer):
 
 class UserDetailSerializer(serializers.ModelSerializer):
     profile_img = serializers.SerializerMethodField()
-    addresses = AddressSerializer(many=True, read_only=True)
+    addresses = AddressSerializer(many=True)
 
     class Meta:
         model = User
@@ -78,3 +78,18 @@ class UserDetailSerializer(serializers.ModelSerializer):
         if obj.profile_img and hasattr(obj.profile_img, 'url'):
             return request.build_absolute_uri(obj.profile_img.url)
         return None
+
+    def update(self, instance, validated_data):
+        addresses_data = validated_data.pop('addresses', [])
+        instance = super().update(instance, validated_data)
+
+        # Optional: handle address updates or creation
+        for addr_data in addresses_data:
+            Address.objects.update_or_create(
+                user=instance,
+                address_type=addr_data.get('address_type'),
+                defaults=addr_data
+            )
+
+        return instance
+
