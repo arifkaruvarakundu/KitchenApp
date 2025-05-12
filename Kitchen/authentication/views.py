@@ -1,7 +1,7 @@
 import os
 from rest_framework import generics
 from rest_framework.views import APIView
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, ResetPasswordRequestSerializer, ResetPasswordSerializer, UserDetailSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, ResetPasswordRequestSerializer, ResetPasswordSerializer, UserDetailSerializer, ProfileImageSerializer, UserSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -15,6 +15,8 @@ from django.core.mail import EmailMessage
 from .forms import AddressForm
 from django.contrib.auth import get_user_model
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.generics import RetrieveAPIView
+import traceback
 
 # Create your views here.
 
@@ -25,41 +27,94 @@ def get_tokens_for_user(user):
         'access': str(refresh.access_token),
     }
 
+# User Registration View
 class UserRegistrationView(APIView):
+    """
+    API View to handle user registration.
+
+    Allows any user (authenticated or not) to send a POST request to register a new account.
+    If the provided data is valid, a new user is created, and a JWT token is returned.
+    If invalid, it returns appropriate error messages.
+
+    Permissions:
+        - AllowAny: No authentication required.
+
+    Methods:
+        - POST: Accepts user data and creates a new user account.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """
+        Handles POST requests for user registration.
 
+        Expects:
+            - email: User's email address (required)
+            - password: User's password (required)
+            - (any other fields defined in the serializer)
+
+        Returns:
+            - 201 Created: If registration is successful, returns JWT token and user email.
+            - 400 Bad Request: If validation fails, returns serializer error details.
+        """
         serializer = UserRegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
             user = serializer.save()
             token = get_tokens_for_user(user)
+
             return Response(
-                {'token' : token, 'email' : user.email, 'msg' : 'Registration Success' },
-                status = status.HTTP_201_CREATED
-            )
-        
-        else:
-            print("validation error:", serializer.errors)
-            return Response(
-                {"errors" : serializer.errors},
-                status = status.HTTP_400_BAD_REQUEST
+                {
+                    'token': token,
+                    'email': user.email,
+                    'msg': 'Registration Success'
+                },
+                status=status.HTTP_201_CREATED
             )
 
+        # Debug log for serializer validation errors (consider using proper logging in production)
+        print("Validation error:", serializer.errors)
+
+        return Response(
+            {"errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+# User Login View
 class UserLoginView(APIView):
+    """
+    API View to handle user login.
+
+    Allows any user (authenticated or not) to send a POST request with valid credentials
+    to obtain a JWT token for authenticated access. Returns user details upon successful login.
+
+    Permissions:
+        - AllowAny: No authentication required.
+
+    Methods:
+        - POST: Accepts email and password for user authentication.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """
+        Handles POST requests for user login.
+
+        Expects:
+            - email: User's email address (required)
+            - password: User's password (required)
+
+        Returns:
+            - 200 OK: If login is successful, returns JWT token and user details.
+            - 401 Unauthorized: If credentials are invalid.
+        """
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data.get('email')
         password = serializer.validated_data.get('password')
 
-        print("email:", type(email))
-        print("password:", type(password))  
-
+        # Authenticate user using email and password
         user = authenticate(email=email, password=password)
 
         if user is not None:
@@ -74,12 +129,13 @@ class UserLoginView(APIView):
                 'email': user.email,
                 'profile_img': profile_img_url,
             }, status=status.HTTP_200_OK)
-        else:
-            return Response({
-                'errors': {'non_field_errors': ['Email or Password is not valid']}
-            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response({
+            'errors': {'non_field_errors': ['Email or Password is not valid']}
+        }, status=status.HTTP_401_UNAUTHORIZED)
 
 
+# Password Reset Views
 
 token_generator = PasswordResetTokenGenerator()
 
@@ -144,68 +200,232 @@ class ResetPassword(generics.GenericAPIView):
 
         return Response({'success': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
         
+# Save Address View
 class SaveAddressView(APIView):
+    """
+    API View to save a user's address.
+
+    This view allows authenticated users to submit and save a new shipping address.
+    It uses a Django form (`AddressForm`) for validation.
+
+    Permissions:
+        - IsAuthenticated: Only authenticated users can access this endpoint.
+
+    Methods:
+        - POST: Accepts address data and saves it to the user's profile.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        """
+        Handles POST requests to save a shipping address.
+
+        Expects:
+            - All fields required by AddressForm (e.g., street, city, zip, etc.)
+
+        Returns:
+            - 201 Created: If address is saved successfully.
+            - 400 Bad Request: If form validation fails, returns form error details.
+        """
         form = AddressForm(request.data)
+
         if form.is_valid():
             address = form.save(commit=False)
             address.user = request.user
-            address.address_type = 'shipping'  # or 'billing' if needed
+            address.address_type = 'shipping'  # Defaulting to shipping; modify if dynamic
             address.save()
-            return Response({'success': 'Address saved successfully'}, status=status.HTTP_201_CREATED)
-        return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-class CurrentUserInfo(APIView):
-    permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        user = request.user
-        return Response({
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'email': user.email
-        })
+            return Response(
+                {'success': 'Address saved successfully'},
+                status=status.HTTP_201_CREATED
+            )
 
+        return Response(
+            form.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+# User Profile Detail View
 class UserDetailView(APIView):
+    """
+    API View to retrieve the details of the authenticated user's profile.
+
+    This view allows an authenticated user to retrieve their own profile information. 
+    The user must be authenticated to access this endpoint, as enforced by the 
+    IsAuthenticated permission.
+
+    Permissions:
+        - IsAuthenticated: Only accessible by authenticated users.
+
+    Methods:
+        - GET: Returns the authenticated user's profile details.
+    """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         """
-        Retrieve authenticated user's profile details.
-        """
-        user = request.user  # Already guaranteed to be authenticated by IsAuthenticated
+        Handles GET requests to retrieve the authenticated user's profile details.
 
+        Expects:
+            - The user must be authenticated.
+
+        Returns:
+            - 200 OK: If the user's profile is retrieved successfully.
+            - 401 Unauthorized: If the user is not authenticated (handled by IsAuthenticated).
+        
+        Parameters:
+            request (Request): The request object containing the user's authentication details.
+            *args: Variable length arguments.
+            **kwargs: Keyword arguments.
+
+        Response:
+            - A Response object containing the user profile data.
+        """
+        # The user is already authenticated as ensured by the IsAuthenticated permission
+        user = request.user  # Get the authenticated user
+        
+        # Serialize the user profile data
         serializer = UserDetailSerializer(user, context={'request': request})
+        
+        # Return the profile details with a successful status
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+
+# User Profile Update View
 class UpdateUserProfileView(APIView):
     """
-    View to update the authenticated user's profile.
-    Supports partial updates with JSON, Form, or Multipart data.
-    """
+    API View to update the authenticated user's profile information.
 
+    This view allows users to update their profile data, including fields like 
+    first name, last name, email, profile image, and addresses. The update is 
+    partial, meaning that only the provided fields in the request will be updated.
+
+    Permissions:
+        - IsAuthenticated: Only accessible by authenticated users.
+
+    Parser Classes:
+        - MultiPartParser: Supports multipart form data (e.g., file uploads).
+        - FormParser: Parses form-encoded data.
+        - JSONParser: Parses JSON-encoded data.
+
+    Methods:
+        - PATCH: Accepts partial profile updates.
+    """
+    
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def patch(self, request, *args, **kwargs):
-        user = request.user  # Authenticated user
+        """
+        Handles PATCH requests to update the authenticated user's profile.
 
-        serializer = UserDetailSerializer(user, data=request.data, partial=True)
+        Expects:
+            - A JSON or multipart form containing any fields that need to be updated. 
+              The request may include fields like:
+                - first_name
+                - last_name
+                - email
+                - profile_img (optional)
+                - addresses (optional)
+
+        Returns:
+            - 200 OK: If the profile was successfully updated, returns a success message and the updated data.
+            - 400 Bad Request: If the provided data is invalid or does not pass validation.
+            - 500 Internal Server Error: If there is an error during saving the data (e.g., database issues).
+
+        Parameters:
+            request (Request): The request object containing the data to be updated.
+            *args: Variable length arguments.
+            **kwargs: Keyword arguments.
+
+        Response:
+            - A Response object containing the status of the update.
+        """
+        # Get the authenticated user from the request
+        user = request.user  # Authenticated user
+        
+        # Initialize the serializer with the user and the incoming request data
+        serializer = UserDetailSerializer(user, data=request.data, partial=True, context={'request': request})
 
         if serializer.is_valid():
             try:
+                # Save the updated user profile data
                 serializer.save()
                 return Response({
                     'message': 'Profile updated successfully.',
                     'data': serializer.data
                 }, status=status.HTTP_200_OK)
             except Exception as e:
+                # Log the full traceback for debugging purposes
+                traceback.print_exc()  
                 return Response({
                     'error': f'An error occurred while saving: {str(e)}'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        # If the serializer is invalid, return error details
         return Response({
             'error': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Profile Image Update View
+class ProfileImageUpdateView(APIView):
+    """
+    API View to update the profile image of the authenticated user.
+
+    Allows authenticated users to update their profile image using a PATCH request.
+    The update is handled partially, meaning only the image field is required in the request.
+
+    Permissions:
+        - IsAuthenticated: Only accessible to authenticated users.
+
+    Methods:
+        - PATCH: Updates the user's profile image.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, *args, **kwargs):
+        """
+        Handles PATCH requests to update the user's profile image.
+
+        Expects:
+            - profile_img: Image file to update the user's profile image.
+
+        Returns:
+            - 200 OK: If the image is successfully updated.
+            - 400 Bad Request: If the input data is invalid.
+        """
+        user = request.user
+        serializer = ProfileImageSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Profile image updated successfully.'}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+# Current User View
+class CurrentUserView(RetrieveAPIView):
+    """
+    API View to retrieve the currently authenticated user's information.
+
+    This view returns the details of the logged-in user using the `UserSerializer`.
+
+    Permissions:
+        - IsAuthenticated: Only accessible to authenticated users.
+
+    Methods:
+        - GET: Returns the authenticated user's data.
+    """
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        """
+        Retrieves the user object associated with the current authenticated request.
+
+        Returns:
+            - User instance of the currently authenticated user.
+        """
+        return self.request.user

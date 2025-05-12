@@ -64,7 +64,7 @@ class AddressSerializer(serializers.ModelSerializer):
 
 class UserDetailSerializer(serializers.ModelSerializer):
     profile_img = serializers.SerializerMethodField()
-    addresses = AddressSerializer(many=True)
+    addresses = AddressSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
@@ -92,4 +92,9 @@ class UserDetailSerializer(serializers.ModelSerializer):
             )
 
         return instance
+    
+class ProfileImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['profile_img']
 
