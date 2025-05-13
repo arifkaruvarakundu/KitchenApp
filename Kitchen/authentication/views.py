@@ -17,6 +17,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.generics import RetrieveAPIView
 import traceback
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import format_html
 
 # Create your views here.
 
@@ -131,14 +133,13 @@ class UserLoginView(APIView):
             }, status=status.HTTP_200_OK)
 
         return Response({
-            'errors': {'non_field_errors': ['Email or Password is not valid']}
+            'message': 'Invalid email or password.'
         }, status=status.HTTP_401_UNAUTHORIZED)
 
 
 # Password Reset Views
 
 token_generator = PasswordResetTokenGenerator()
-
 
 class RequestPasswordReset(generics.GenericAPIView):
     permission_classes = [AllowAny]
@@ -153,24 +154,31 @@ class RequestPasswordReset(generics.GenericAPIView):
         if user:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = token_generator.make_token(user)
-            reset_base = os.getenv('PASSWORD_RESET_BASE_URL', 'http://127.0.0.1:8000/auth/reset-password')
-            reset_url = f"{reset_base}/{uid}/{token}/"
 
+            mobile_url = f"myapp://reset-password/{uid}/{token}"  # Mobile deep link
+            web_url = f"https://yourfrontend.com/reset-password/{uid}/{token}"  # Web fallback
 
             subject = "Password Reset Request"
-            message = f"""
-            Hi {user.email},
-            
-            You requested a password reset. Click the link below to reset your password:
+            text_message = (
+                f"Hi {user.email},\n\n"
+                f"You requested a password reset. Use one of the links below:\n\n"
+                f"Mobile: {mobile_url}\n"
+                f"Web: {web_url}\n\n"
+                "If you didn't request this, you can ignore this email."
+            )
 
-            {reset_url}
-
-            If you didn't request this, you can ignore this email.
+            html_message = f"""
+                <p>Hi {user.email},</p>
+                <p>You requested a password reset. Use the link below:</p>
+                <p><a href="{mobile_url}" style="padding: 10px 20px; background-color: #58b3e4; color: white; text-decoration: none; border-radius: 5px;" target="_blank">Reset Password (Mobile)</a></p>
+                <p>Or use the web version: <a href="{web_url}">Reset via Web</a></p>
+                <p>If you didn't request this, you can ignore this email.</p>
             """
-            email_msg = EmailMessage(subject, message, to=[email])
+
+            email_msg = EmailMultiAlternatives(subject, text_message, to=[email])
+            email_msg.attach_alternative(html_message, "text/html")
             email_msg.send()
 
-        # Don't reveal whether the email exists
         return Response({'success': 'If the email is registered, a reset link has been sent.'}, status=status.HTTP_200_OK)
 
 
