@@ -11,15 +11,16 @@ class ProductFeatureSerializer(serializers.ModelSerializer):
         model = ProductFeature
         fields = ['key', 'value', 'key_ar', 'value_ar']
 
-class ProductVariantImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductVariantImage
-        fields = ['id', 'image', 'public_id']
-
 class ProductVariantSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductVariant
         fields = ['id', 'product', 'color','color_ar', 'size', 'price', 'stock', 'is_available']
+
+class ProductVariantImageSerializer(serializers.ModelSerializer):
+    variant = ProductVariantSerializer(read_only=True)
+    class Meta:
+        model = ProductVariantImage
+        fields = ['id', 'image', 'public_id', 'variant']
 
 class ProductSerializer(serializers.ModelSerializer):
     features = ProductFeatureSerializer(many=True)
@@ -30,7 +31,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'product_name', 'product_name_ar', 'price', 'description', 'description_ar', 'features', 'category', "use_and_care", 'use_and_care_ar', 'product_images', 'variant_images', 'variants']
+        fields = ['id', 'product_name', 'product_name_ar', 'brand', 'price', 'description', 'description_ar', 'features', 'category', "use_and_care", 'use_and_care_ar', 'product_images', 'variant_images', 'variants']
 
     def create(self, validated_data):
         features_data = validated_data.pop('features')
