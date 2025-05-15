@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import ProductSerializer, ProductCategorySerializer
+from .serializers import ProductSerializer, ProductCategorySerializer, ProductListSerializer
 from rest_framework.permissions import AllowAny
 from .models import Product, ProductCategory
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
@@ -26,7 +26,7 @@ class AllProductsView(APIView):
         """
         try:
             products = Product.objects.all()
-            serializer = ProductSerializer(products, many=True, context={'request': request})
+            serializer = ProductListSerializer(products, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         except Exception as e:

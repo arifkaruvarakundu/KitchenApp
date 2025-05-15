@@ -77,8 +77,12 @@ class ProductVariantImage(models.Model):
     image = CloudinaryField('image', blank=True, null=True)
     public_id = models.CharField(max_length=255, default="", null=True, blank=True)  # Store the public_id for Cloudinary images
     product = models.ForeignKey(Product, related_name="product_images", on_delete=models.CASCADE, null=True, blank=True)
+    is_default = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
+        if self.is_default:
+            # Unset other default images for the same product
+            ProductVariantImage.objects.filter(product=self.product, is_default=True).exclude(pk=self.pk).update(is_default=False)
         if self.image and hasattr(self.image, 'public_id'):
             self.public_id = self.image.public_id
         super().save(*args, **kwargs)
