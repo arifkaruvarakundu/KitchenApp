@@ -41,7 +41,7 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'product_name', 'default_image', 'price', 'category']
+        fields = ['id', 'product_name','product_name_ar', 'default_image', 'price', 'category']
 
     def get_default_image(self, obj):
         default_image = obj.product_images.filter(is_default=True).first()
