@@ -70,7 +70,7 @@ class ProductVariant(models.Model):
         if self.size:
             variant_details.append(f"Size: {self.size}")
 
-        return f"{self.product.product_name} - {' | '.join(variant_details)}"
+        return f"{self.id} - {self.product.product_name} - {' | '.join(variant_details)}"
 
 class ProductVariantImage(models.Model):
     variant = models.ForeignKey(ProductVariant, related_name="variant_images", on_delete=models.CASCADE, null=True, blank=True)

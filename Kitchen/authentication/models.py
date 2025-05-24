@@ -60,11 +60,11 @@ class Address(models.Model):
     country = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=25)
     is_default = models.BooleanField(default=False, null=True, blank=True)
-    address_type = models.CharField(max_length=10, choices=[('shipping', 'Shipping'), ('billing', 'Billing')], null=True, blank=True)
+    # address_type = models.CharField(max_length=10, choices=[('shipping', 'Shipping'), ('billing', 'Billing')], null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.address_type.title()} - {self.street_address}, {self.city}"
+        return f" Address - {self.user.first_name} {self.user.last_name}"
     
 class PasswordReset(models.Model):
     email = models.EmailField()

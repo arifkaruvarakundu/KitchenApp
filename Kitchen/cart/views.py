@@ -99,7 +99,7 @@ class CartDetailView(APIView):
                     "color": item.variant.color if item.variant else None,
                     "size": item.variant.size if item.variant else None
                 },
-                "image": item.variant.variant_images.first().image_url if item.variant and item.variant.variant_images.exists() else None
+                "image": item.variant.variant_images.first().image.url if item.variant and item.variant.variant_images.exists() else None
             })
 
         return Response({"items": serialized_items}, status=200)

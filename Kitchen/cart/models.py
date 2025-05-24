@@ -20,3 +20,7 @@ class CartItem(models.Model):
 
     def __str__(self):
         return f"{self.product.product_name} x {self.quantity}"
+
+class GuestUser(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)

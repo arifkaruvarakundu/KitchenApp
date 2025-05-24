@@ -58,7 +58,7 @@ User = get_user_model()
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
-        fields = ['street_address', 'city', 'zipcode', 'country', 'phone_number', 'address_type']
+        fields = ['street_address', 'city', 'zipcode', 'country', 'phone_number']
 
 
 class UserDetailSerializer(serializers.ModelSerializer):

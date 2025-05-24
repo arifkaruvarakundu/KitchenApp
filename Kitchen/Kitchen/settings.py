@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-%oo2+m6awf+pt*_agka7gxnizvgkhm!nty92y4h2oe_)*sdi66
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.8.178','192.168.8.182', '192.168.8.138', '192.168.8.186', '127.0.0.1']
+ALLOWED_HOSTS = ['192.168.8.178','192.168.8.182', '192.168.8.138', '192.168.8.186', '192.168.8.149', '127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'authentication',
     'products.apps.ProductsConfig',
     'cart',
+    'order',
 
 ]
 
