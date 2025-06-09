@@ -153,11 +153,11 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # STATIC_ROOT is where 'collectstatic' will gather all static files (for production)
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # <-- change this folder name!
+STATIC_ROOT = BASE_DIR / 'staticfiles' # <-- change this folder name!
 
 # STATICFILES_DIRS are your source static folders during development
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # your development static files here
+    BASE_DIR / 'static',  # your development static files here
 ]
 
 # Default primary key field type
