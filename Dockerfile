@@ -27,5 +27,5 @@ COPY . .
 EXPOSE 8000
 
 # Run the Gunicorn server
-# CMD ["gunicorn", "Kitchen.wsgi:application", "--bind", "0.0.0.0:8000"]
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "Kitchen.wsgi:application", "--bind", "0.0.0.0:8000"]
+# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
