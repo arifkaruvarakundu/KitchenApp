@@ -62,6 +62,7 @@ class ProductVariant(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=3, db_index=True, null=True, blank=True)
     stock = models.IntegerField(null=True, blank=True)
     is_available = models.BooleanField(default=True)
+    is_default = models.BooleanField(default=False)
 
     def __str__(self):
         variant_details = []

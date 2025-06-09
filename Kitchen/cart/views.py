@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from rest_framework.permissions import AllowAny, IsAuthenticated
-# Create your views here.
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -9,9 +8,10 @@ from .models import Cart, CartItem
 from products.models import Product, ProductVariant  # adjust import based on your project structure
 import uuid
 
+# Create your views here.
 class AddToCartView(APIView):
     
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
         product_id = request.data.get('product_id')
@@ -103,3 +103,77 @@ class CartDetailView(APIView):
             })
 
         return Response({"items": serialized_items}, status=200)
+
+class RemoveFromCartView(APIView):
+    permission_classes = [AllowAny]
+
+    def delete(self, request):
+        user = request.user if request.user.is_authenticated else None
+        variant_id = request.data.get('variant_id')
+      
+        if not variant_id:
+            return Response({"error": "variant_id is required"}, status=400)
+
+        try:
+            variant_id = int(variant_id)
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid variant_id"}, status=400)
+
+        try:
+            print("User:", user)
+            print("Is authenticated:", user.is_authenticated if user else False)
+
+            if user:
+                # Remove item from authenticated user's cart
+                cart_item = CartItem.objects.get(cart__user=user, variant_id=variant_id)
+            else:
+                # Handle guest users via cart_uuid in session/cookie
+                cart_uuid = request.data.get('cart_uuid')
+                cart_item = CartItem.objects.get(cart__uuid=cart_uuid, variant_id=variant_id)
+
+            cart_item.delete()
+            return Response({"success": True}, status=200)
+
+        except CartItem.DoesNotExist:
+            return Response({"error": "Item not found in cart"}, status=404)
+
+class MergeGuestCartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        guest_cart_uuid = request.data.get("cart_uuid")
+        if not guest_cart_uuid:
+            return Response({"error": "cart_uuid is required"}, status=400)
+
+        try:
+            guest_cart = Cart.objects.get(uuid=guest_cart_uuid, user__isnull=True)
+            user_cart, _ = Cart.objects.get_or_create(user=request.user, is_active=True)
+
+            # Move items from guest cart to user's cart
+            for item in guest_cart.items.all():
+                user_item, created = CartItem.objects.get_or_create(
+                    cart=user_cart,
+                    product=item.product,
+                    variant=item.variant,
+                    defaults={
+                        "quantity": item.quantity,
+                        "price": item.price,
+                    }
+                )
+                if not created:
+                    user_item.quantity += item.quantity
+                    user_item.save()
+
+            guest_cart.delete()  # optional: clean up guest cart
+
+            return Response({"message": "Cart merged successfully"}, status=200)
+
+        except Cart.DoesNotExist:
+            return Response({"error": "Guest cart not found"}, status=404)
+
+class HasUserCartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        has_cart = Cart.objects.filter(user=request.user, is_active=True).exists()
+        return Response({"has_cart": has_cart})

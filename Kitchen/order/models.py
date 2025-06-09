@@ -33,3 +33,29 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.product_variant.product.product_name} x {self.quantity}"
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, related_name="notifications", on_delete=models.CASCADE)
+    message = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification for {self.user.first_name} {self.user.last_name} - {self.message}"
+
+class Invoice(models.Model):
+    customer_name = models.CharField(max_length=255)
+    customer_email = models.EmailField()
+    date_created = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateField()
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+class InvoiceItem(models.Model):
+    invoice = models.ForeignKey(Invoice, related_name='items', on_delete=models.CASCADE)
+    description = models.CharField(max_length=255)
+    quantity = models.IntegerField()
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    @property
+    def total(self):
+        return self.quantity * self.unit_price

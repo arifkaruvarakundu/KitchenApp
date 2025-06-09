@@ -1,4 +1,4 @@
-from .models import OrderItem, Order
+from .models import *
 from products.serializers import ProductVariantSerializer
 from products.models import ProductVariant
 from rest_framework import serializers
@@ -35,3 +35,22 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'status', 'created_at', 'updated_at', 'total_amount', 'items']
+
+class InvoiceItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvoiceItem
+        fields = ['id', 'description', 'quantity', 'unit_price', 'total']
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    items = InvoiceItemSerializer(many=True)
+
+    class Meta:
+        model = Invoice
+        fields = ['id', 'customer_name', 'customer_email', 'date_created', 'due_date', 'total_amount', 'items']
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items')
+        invoice = Invoice.objects.create(**validated_data)
+        for item in items_data:
+            InvoiceItem.objects.create(invoice=invoice, **item)
+        return invoice

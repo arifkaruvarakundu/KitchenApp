@@ -10,7 +10,6 @@ class UserManager(BaseUserManager):
             raise ValueError('User must have an email address')
 
         email = self.normalize_email(email)
-        # Create the user with the provided user_type, defaulting to 'customer'
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)

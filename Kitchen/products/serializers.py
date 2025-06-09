@@ -38,10 +38,11 @@ class ProductListSerializer(serializers.ModelSerializer):
     default_image = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
     category = ProductCategoryMinimalSerializer()
+    default_variant = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ['id', 'product_name','product_name_ar', 'default_image', 'price', 'category']
+        fields = ['id', 'product_name','product_name_ar', 'default_image', 'price', 'category', 'default_variant']
 
     def get_default_image(self, obj):
         default_image = obj.product_images.filter(is_default=True).first()
@@ -64,6 +65,12 @@ class ProductListSerializer(serializers.ModelSerializer):
             return default_image.variant.price
 
         return obj.price or None
+
+    def get_default_variant(self, obj):
+        default_variant = obj.variants.filter(is_default=True).first()
+        if default_variant:
+            return default_variant.id
+        return None
 
 class ProductSerializer(serializers.ModelSerializer):
     features = ProductFeatureSerializer(many=True)

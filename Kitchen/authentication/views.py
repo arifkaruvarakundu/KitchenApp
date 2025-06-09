@@ -392,6 +392,7 @@ class ProfileImageUpdateView(APIView):
         - PATCH: Updates the user's profile image.
     """
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def patch(self, request, *args, **kwargs):
         """

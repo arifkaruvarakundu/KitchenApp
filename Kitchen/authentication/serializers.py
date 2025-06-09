@@ -34,11 +34,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('password2', None)
         return User.objects.create_user(**validated_data)
     
-# class UserProfileSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = User
-#         fields = '__all__'
-    
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -59,7 +54,6 @@ class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = ['street_address', 'city', 'zipcode', 'country', 'phone_number']
-
 
 class UserDetailSerializer(serializers.ModelSerializer):
     profile_img = serializers.SerializerMethodField()

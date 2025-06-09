@@ -1,11 +1,10 @@
 from django.shortcuts import render
-# Create your views here.
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from .models import Order, OrderItem
-from .serializers import OrderListSerializer, OrderDetailSerializer
+from .models import *
+from .serializers import *
 from authentication.models import User, Address
 from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
@@ -15,6 +14,7 @@ from products.models import ProductVariant
 from cart.models import Cart, CartItem
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from rest_framework import viewsets
 
 # Create your views here.
 
@@ -96,3 +96,7 @@ class OrderDetailsView(APIView):
 
         serializer = OrderDetailSerializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class InvoiceViewSet(APIView):
+    queryset = Invoice.objects.all().order_by('-date_created')
+    serializer_class = InvoiceSerializer
