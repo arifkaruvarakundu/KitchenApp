@@ -22,14 +22,16 @@ class Order(models.Model):
     def __str__(self):
         return f"Order #{self.id} - {self.user.first_name} {self.user.last_name}"
 
-
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product_variant = models.ForeignKey(ProductVariant, on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField(default=1)
 
     def total_price(self):
+        if self.product_variant.price is None:
+            return 0
         return self.product_variant.price * self.quantity
+
 
     def __str__(self):
         return f"{self.product_variant.product.product_name} x {self.quantity}"
@@ -44,18 +46,9 @@ class Notification(models.Model):
         return f"Notification for {self.user.first_name} {self.user.last_name} - {self.message}"
 
 class Invoice(models.Model):
-    customer_name = models.CharField(max_length=255)
-    customer_email = models.EmailField()
-    date_created = models.DateTimeField(auto_now_add=True)
+    order = models.OneToOneField(Order, related_name="invoice", on_delete=models.CASCADE, null=True, blank=True)
     due_date = models.DateField()
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
-class InvoiceItem(models.Model):
-    invoice = models.ForeignKey(Invoice, related_name='items', on_delete=models.CASCADE)
-    description = models.CharField(max_length=255)
-    quantity = models.IntegerField()
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-
-    @property
-    def total(self):
-        return self.quantity * self.unit_price
+    def __str__(self):
+        return f"Invoice for Order #{self.order.id}"

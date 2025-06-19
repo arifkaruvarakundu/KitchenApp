@@ -50,4 +50,3 @@ class OrderItemAdmin(admin.ModelAdmin):
 admin.site.register(OrderItem, OrderItemAdmin)
 admin.site.register(Notification)
 admin.site.register(Invoice)
-admin.site.register(InvoiceItem)

@@ -34,6 +34,32 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('password2', None)
         return User.objects.create_user(**validated_data)
     
+class AdminUserRegistrationSerializer(serializers.ModelSerializer):
+    password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['email', 'first_name','last_name', 'password', 'password2']  # Use `username` instead of `name`
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
+    def validate(self, attrs):
+        password = attrs.get('password')
+        password2 = attrs.get('password2')
+        if password != password2:
+            raise serializers.ValidationError({"password": "Passwords do not match"})
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            raise serializers.ValidationError({"password": list(e.messages)})
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('password2', None)
+        validated_data['is_admin'] = True  # Force is_admin to True
+        return User.objects.create_user(**validated_data)
+    
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -90,4 +116,16 @@ class ProfileImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['profile_img']
+
+class AdminUserDetailsSerializer(serializers.ModelSerializer):
+    addresses = AddressSerializer(many=True, read_only=True)  # `related_name='addresses'` in your model
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 'is_active', 'is_admin',
+            'is_staff', 'is_superuser', 'created_at', 'updated_at', 'profile_img',
+            'addresses'  # include related addresses
+        ]
+
 

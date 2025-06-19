@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 from cloudinary.models import CloudinaryField
+from django.db.models import Q
 
 # Create your models here.
 class ProductCategory(models.Model):
@@ -17,14 +18,14 @@ class ProductCategory(models.Model):
         return self.category_name
     
 class Product(models.Model):
-    product_name = models.CharField(max_length=200, db_index=True, unique=True)
-    brand = models.CharField(max_length=100, null=True, blank=True, help_text="Enter brand name")
+    product_name = models.CharField(max_length=200, db_index=True)
+    brand = models.CharField(max_length=100, null=True, blank=True, help_text="Enter brand name", default="ecoco")
     slug = models.SlugField(max_length=200, unique=True, null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=3, db_index=True, null=True, blank=True)
     stock = models.IntegerField(null=True, blank=True)
     description = models.TextField(max_length=500, blank=True)
     use_and_care = models.TextField(max_length=500, blank=True)
-    is_available = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
     category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE, related_name='products', null=True, blank=True)
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
@@ -59,10 +60,16 @@ class ProductVariant(models.Model):
     product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE)
     color = models.CharField(max_length=100, null=True, blank=True)
     size = models.CharField(max_length=100, null=True, blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=3, db_index=True, null=True, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=3, default=0.0)
     stock = models.IntegerField(null=True, blank=True)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.0, help_text="Enter discount as a percentage (e.g., 20 for 20%)")
     is_available = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['product'], condition=Q(is_default=True), name='only_one_default_variant_per_product')
+        ]
 
     def __str__(self):
         variant_details = []
@@ -82,11 +89,15 @@ class ProductVariantImage(models.Model):
 
     def save(self, *args, **kwargs):
         if self.is_default:
-            # Unset other default images for the same product
-            ProductVariantImage.objects.filter(product=self.product, is_default=True).exclude(pk=self.pk).update(is_default=False)
-        if self.image and hasattr(self.image, 'public_id'):
-            self.public_id = self.image.public_id
+            if self.variant:
+                # Unset other default images for the same variant
+                ProductVariantImage.objects.filter(variant=self.variant, is_default=True).exclude(pk=self.pk).update(is_default=False)
+            elif self.product:
+                # Unset other default images for the product (if no variant)
+                ProductVariantImage.objects.filter(product=self.product, is_default=True).exclude(pk=self.pk).update(is_default=False)
+        ...
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         if self.variant:

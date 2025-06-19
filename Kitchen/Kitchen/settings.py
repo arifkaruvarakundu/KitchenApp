@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'authentication',
     'products.apps.ProductsConfig',
     'cart',
-    'order',
+    'order.apps.OrderConfig'
 
 ]
 
@@ -75,7 +75,7 @@ ROOT_URLCONF = 'Kitchen.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -218,7 +218,7 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=120),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=720),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -246,3 +246,5 @@ SIMPLE_JWT = {
 
 SEARCH_PRODUCT_LIMIT = 10
 SEARCH_CATEGORY_LIMIT = 5
+
+CORS_ALLOW_ALL_ORIGINS = True

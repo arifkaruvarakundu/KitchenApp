@@ -1,7 +1,8 @@
 import os
 from rest_framework import generics
+from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, ResetPasswordRequestSerializer, ResetPasswordSerializer, UserDetailSerializer, ProfileImageSerializer, UserSerializer
+from .serializers import *
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -19,6 +20,8 @@ from rest_framework.generics import RetrieveAPIView
 import traceback
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import format_html
+from django.shortcuts import get_object_or_404
+# from rest_framework.permissions import IsAdminUser
 
 # Create your views here.
 
@@ -81,6 +84,63 @@ class UserRegistrationView(APIView):
             {"errors": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+
+# User Registration View
+class AdminUserRegistrationView(APIView):
+    """
+    API View to handle user registration.
+
+    Allows any user (authenticated or not) to send a POST request to register a new account.
+    If the provided data is valid, a new user is created, and a JWT token is returned.
+    If invalid, it returns appropriate error messages.
+
+    Permissions:
+        - AllowAny: No authentication required.
+
+    Methods:
+        - POST: Accepts user data and creates a new user account.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+
+        print("@@################",request.data)
+        """
+        Handles POST requests for user registration.
+
+        Expects:
+            - email: User's email address (required)
+            - password: User's password (required)
+            - (any other fields defined in the serializer)
+
+        Returns:
+            - 201 Created: If registration is successful, returns JWT token and user email.
+            - 400 Bad Request: If validation fails, returns serializer error details.
+        """
+        serializer = AdminUserRegistrationSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.save()
+            token = get_tokens_for_user(user)
+
+            return Response(
+                {
+                    'token': token,
+                    'email': user.email,
+                    'msg': 'Registration Success'
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        # Debug log for serializer validation errors (consider using proper logging in production)
+        print("Validation error:", serializer.errors)
+
+        return Response(
+            {"errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
 
 # User Login View
 class UserLoginView(APIView):
@@ -129,6 +189,7 @@ class UserLoginView(APIView):
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'email': user.email,
+                'is_admin': user.is_admin,
                 'profile_img': profile_img_url,
             }, status=status.HTTP_200_OK)
 
@@ -438,3 +499,61 @@ class CurrentUserView(RetrieveAPIView):
             - User instance of the currently authenticated user.
         """
         return self.request.user
+
+class UserListView(ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+class AdminUserDetailsView(APIView):
+    """
+    API View to retrieve details of a specific user by their ID.
+
+    This view allows administrators to access detailed information about any user in the system.
+
+    Permissions:
+        - IsAdminUser: Only accessible to users with admin privileges.
+
+    Methods:
+        - GET: Returns the details of the specified user.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        """
+        Handles GET requests to retrieve a user's details by their ID.
+
+        Expects:
+            - user_id: The ID of the user whose details are being requested.
+
+        Returns:
+            - 200 OK: If the user is found and details are returned.
+            - 404 Not Found: If the user does not exist.
+        """
+        try:
+            user = User.objects.get(id=user_id)
+            serializer = AdminUserDetailsSerializer(user, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+class EditUserView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def patch(self, request, id):
+        user = get_object_or_404(User, pk=id)
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'User updated successfully', 'data': serializer.data})
+        return Response(serializer.errors, status=400)
+    
+class DeleteUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        user.delete()
+        return Response({"message": "User deleted successfully."}, status=204)
