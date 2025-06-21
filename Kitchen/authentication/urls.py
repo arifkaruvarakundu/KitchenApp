@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin_userdetails/<int:user_id>/', AdminUserDetailsView.as_view(), name='admin-user-details'),
     path('edit_user/<int:id>/', EditUserView.as_view(), name='edit-user'),
     path('delete_user/<int:pk>/', DeleteUserView.as_view(), name='delete_user'),
-    path('admin_register/', AdminUserRegistrationView.as_view(), name='admin-registration')
+    path('admin_register/', AdminUserRegistrationView.as_view(), name='admin-registration'),
+    path('change_password/', ChangePasswordView.as_view(), name='change-password'),
 
 ]

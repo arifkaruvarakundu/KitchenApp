@@ -36,6 +36,21 @@ class AllProductsView(APIView):
         This endpoint retrieves all products from the database.
         """
         try:
+            products = Product.objects.filter(is_active=True)
+            serializer = ProductListSerializer(products, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class AdminAllProductsView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        """
+        This endpoint retrieves all products from the database.
+        """
+        try:
             products = Product.objects.all()
             serializer = ProductListSerializer(products, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
